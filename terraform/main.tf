@@ -1,0 +1,1 @@
+echo "# Starting Project 3 Infrastructure" >> terraform/main.tf
