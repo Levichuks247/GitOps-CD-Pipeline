@@ -23,7 +23,8 @@ resource "aws_subnet" "sub_1" {
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "eu-west-2a"
   map_public_ip_on_launch = true
-  tags = { "kubernetes.io/cluster/gitops-eks" = "shared" }
+  # Updated tag to match v2 cluster name
+  tags = { "kubernetes.io/cluster/gitops-eks-v2" = "shared" }
 }
 
 resource "aws_subnet" "sub_2" {
@@ -31,7 +32,8 @@ resource "aws_subnet" "sub_2" {
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "eu-west-2b"
   map_public_ip_on_launch = true
-  tags = { "kubernetes.io/cluster/gitops-eks" = "shared" }
+  # Updated tag to match v2 cluster name
+  tags = { "kubernetes.io/cluster/gitops-eks-v2" = "shared" }
 }
 
 resource "aws_route_table_association" "a" {
@@ -44,9 +46,9 @@ resource "aws_route_table_association" "b" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# --- EKS Cluster ---
+# --- EKS Cluster (Renamed to v2) ---
 resource "aws_eks_cluster" "eks" {
-  name     = "gitops-eks"
+  name     = "gitops-eks-v2" # Updated
   role_arn = aws_iam_role.cluster.arn
 
   vpc_config {
@@ -54,10 +56,10 @@ resource "aws_eks_cluster" "eks" {
   }
 }
 
-# --- Managed Node Group (UPGRADED TO T3.SMALL) ---
+# --- Managed Node Group (Renamed to v2 & t3.small) ---
 resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.eks.name
-  node_group_name = "gitops-nodes"
+  node_group_name = "gitops-nodes-v2" # Updated
   node_role_arn   = aws_iam_role.nodes.arn
   subnet_ids      = [aws_subnet.sub_1.id, aws_subnet.sub_2.id]
 
@@ -67,24 +69,29 @@ resource "aws_eks_node_group" "nodes" {
     min_size     = 1
   }
 
-  instance_types = ["t3.small"] # Fixed the "Too many pods" error
+  instance_types = ["t3.small"] 
 }
 
-# --- IAM Roles (Renamed to v2 to bypass ghost conflicts) ---
+# --- IAM Roles (v2) ---
 resource "aws_iam_role" "cluster" {
-  name = "gitops-cluster-role-v2"  # Added -v2
+  name = "gitops-cluster-role-v2"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "eks.amazonaws.com" } }]
   })
 }
 
 resource "aws_iam_role" "nodes" {
-  name = "gitops-node-role-v2"    # Added -v2
+  name = "gitops-node-role-v2"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" } }]
   })
 }
 
+# --- IAM Policy Attachments ---
+resource "aws_iam_role_policy_attachment" "cluster_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.cluster.name
+}
 
 resource "aws_iam_role_policy_attachment" "node_worker" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
