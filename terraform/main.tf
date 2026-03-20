@@ -23,8 +23,7 @@ resource "aws_subnet" "sub_1" {
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "eu-west-2a"
   map_public_ip_on_launch = true
-  # Updated tag to match v2 cluster name
-  tags = { "kubernetes.io/cluster/gitops-eks-v2" = "shared" }
+  tags = { "kubernetes.io/cluster/gitops-eks-final" = "shared" }
 }
 
 resource "aws_subnet" "sub_2" {
@@ -32,8 +31,7 @@ resource "aws_subnet" "sub_2" {
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "eu-west-2b"
   map_public_ip_on_launch = true
-  # Updated tag to match v2 cluster name
-  tags = { "kubernetes.io/cluster/gitops-eks-v2" = "shared" }
+  tags = { "kubernetes.io/cluster/gitops-eks-final" = "shared" }
 }
 
 resource "aws_route_table_association" "a" {
@@ -46,9 +44,9 @@ resource "aws_route_table_association" "b" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# --- EKS Cluster (Renamed to v2) ---
+# --- EKS Cluster ---
 resource "aws_eks_cluster" "eks" {
-  name     = "gitops-eks-v2" # Updated
+  name     = "gitops-eks-final"
   role_arn = aws_iam_role.cluster.arn
 
   vpc_config {
@@ -56,10 +54,10 @@ resource "aws_eks_cluster" "eks" {
   }
 }
 
-# --- Managed Node Group (Renamed to v2 & t3.small) ---
+# --- Managed Node Group (t3.small) ---
 resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.eks.name
-  node_group_name = "gitops-nodes-v2" # Updated
+  node_group_name = "gitops-nodes-final"
   node_role_arn   = aws_iam_role.nodes.arn
   subnet_ids      = [aws_subnet.sub_1.id, aws_subnet.sub_2.id]
 
@@ -69,19 +67,19 @@ resource "aws_eks_node_group" "nodes" {
     min_size     = 1
   }
 
-  instance_types = ["t3.small"] 
+  instance_types = ["t3.small"]
 }
 
-# --- IAM Roles (v2) ---
+# --- IAM Roles ---
 resource "aws_iam_role" "cluster" {
-  name = "gitops-cluster-role-v2"
+  name = "gitops-cluster-role-final"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "eks.amazonaws.com" } }]
   })
 }
 
 resource "aws_iam_role" "nodes" {
-  name = "gitops-node-role-v2"
+  name = "gitops-node-role-final"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" } }]
   })
